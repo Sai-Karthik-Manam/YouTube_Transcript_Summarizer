@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: youtube-transcript-summarizer
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    autoDeploy: true
+    envVars:
+      - key: FLASK_ENV
+        value: production
