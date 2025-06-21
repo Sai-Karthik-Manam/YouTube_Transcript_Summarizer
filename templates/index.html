@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>YouTube Transcript Summarizer</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube Transcript Summarizer</h1>
+        <form method="POST">    
+            <label for="video_url">Enter YouTube URL or ID:</label>
+            <input type="text" id="video_url" name="video_url" required>
+            <button type="submit" class="btn">Summarize</button>
+        </form>
+    </div>
+
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+
+    {% if summary %}
+        <h3>Summary:</h3>
+        <textarea readonly>{{ summary }}</textarea>
+    {% endif %}
+</body>
+</html>
