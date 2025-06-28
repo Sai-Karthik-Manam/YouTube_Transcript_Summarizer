@@ -4,6 +4,8 @@ import re
 from collections import Counter
 from heapq import nlargest
 import os
+import time
+import random
 
 app = Flask(__name__)
 
@@ -13,8 +15,13 @@ def extract_video_id(url_or_id):
 
 def get_transcript(video_id):
     try:
+        # Add a randomized delay to avoid hitting YouTube's rate limits
+        delay = random.uniform(3, 6)
+        print(f"[INFO] Waiting {delay:.2f} seconds before requesting transcript...")
+        time.sleep(delay)
+
         transcript_data = YouTubeTranscriptApi.get_transcript(video_id)
-        return transcript_data  # Keep timestamps for topic tracking
+        return transcript_data
     except Exception as e:
         return f"[Error] Could not retrieve transcript: {e}"
 
