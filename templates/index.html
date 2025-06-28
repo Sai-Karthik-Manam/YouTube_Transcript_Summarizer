@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>YouTube Transcript Summarizer</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
     <div class="container">
@@ -11,17 +11,30 @@
         <form method="POST">    
             <label for="video_url">Enter YouTube URL or ID:</label>
             <input type="text" id="video_url" name="video_url" required>
+
+            <label for="topics">Enter Topics (optional, comma-separated):</label>
+            <input type="text" id="topics" name="topics" placeholder="e.g., introduction, summary">
+
             <button type="submit" class="btn">Summarize</button>
         </form>
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        {% if summary %}
+            <h3>Summary:</h3>
+            <textarea readonly>{{ summary }}</textarea>
+        {% endif %}
+
+        {% if topics %}
+            <h3>Topic Time Segments:</h3>
+            <ul>
+            {% for topic, times in topics.items() %}
+                <li><strong>{{ topic }}:</strong> {{ times[0] }} to {{ times[1] }}</li>
+            {% endfor %}
+            </ul>
+        {% endif %}
     </div>
-
-    {% if error %}
-        <p class="error">{{ error }}</p>
-    {% endif %}
-
-    {% if summary %}
-        <h3>Summary:</h3>
-        <textarea readonly>{{ summary }}</textarea>
-    {% endif %}
 </body>
 </html>

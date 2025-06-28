@@ -14,8 +14,7 @@ def extract_video_id(url_or_id):
 def get_transcript(video_id):
     try:
         transcript_data = YouTubeTranscriptApi.get_transcript(video_id)
-        full_text = " ".join([item["text"] for item in transcript_data])
-        return full_text
+        return transcript_data  # Keep timestamps for topic tracking
     except Exception as e:
         return f"[Error] Could not retrieve transcript: {e}"
 
@@ -31,13 +30,13 @@ def summarize_text(text, top_n=3):
 
     cleaned = clean_text(text)
     words = cleaned.split()
-    
+
     stopwords = set([
         'the', 'and', 'is', 'in', 'to', 'of', 'a', 'for', 'on', 'with', 'as',
         'that', 'this', 'at', 'by', 'an', 'be', 'or', 'from', 'are', 'was',
         'it', 'not', 'have', 'has', 'but', 'if', 'you', 'we'
     ])
-    
+
     word_freq = Counter(word for word in words if word not in stopwords)
 
     sentences = split_sentences(text)
@@ -53,20 +52,63 @@ def summarize_text(text, top_n=3):
     best_sentences = nlargest(top_n, sentence_scores, key=sentence_scores.get)
     return "\n".join(best_sentences)
 
+def find_topic_segments(transcript_data, keywords):
+    segments = {}
+    for keyword in keywords:
+        keyword = keyword.lower()
+        times = [entry['start'] for entry in transcript_data if keyword in entry['text'].lower()]
+        if times:
+            start_time = min(times)
+            end_time = max(times)
+            segments[keyword] = (format_time(start_time), format_time(end_time))
+        else:
+            segments[keyword] = ("Not Found", "Not Found")
+    return segments
+
+def format_time(seconds):
+    minutes = int(seconds // 60)
+    seconds = int(seconds % 60)
+    return f"{minutes:02}:{seconds:02}"
+
+def get_keywords(text, num_keywords=5):
+    stopwords = set([
+        'the', 'and', 'is', 'in', 'to', 'of', 'a', 'for', 'on', 'with', 'as',
+        'that', 'this', 'at', 'by', 'an', 'be', 'or', 'from', 'are', 'was',
+        'it', 'not', 'have', 'has', 'but', 'if', 'you', 'we'
+    ])
+    words = re.findall(r'\w+', text.lower())
+    filtered = [w for w in words if w not in stopwords and len(w) > 2]
+    most_common = Counter(filtered).most_common(num_keywords)
+    return [word for word, freq in most_common]
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     summary = ""
     error = ""
+    topics = {}
+
     if request.method == 'POST':
         video_url = request.form.get('video_url')
-        video_id = extract_video_id(video_url)
-        transcript = get_transcript(video_id)
-        if transcript.startswith("[Error]"):
-            error = transcript
-        else:
-            summary = summarize_text(transcript)
+        topic_input = request.form.get('topics', '')
 
-    return render_template("index.html", summary=summary, error=error)
+        video_id = extract_video_id(video_url)
+        transcript_data = get_transcript(video_id)
+
+        if isinstance(transcript_data, str) and transcript_data.startswith("[Error]"):
+            error = transcript_data
+        else:
+            full_text = " ".join([entry["text"] for entry in transcript_data])
+            summary = summarize_text(full_text)
+
+            # Use provided topics or auto-generate
+            if topic_input.strip():
+                topic_list = [t.strip() for t in topic_input.split(',') if t.strip()]
+            else:
+                topic_list = get_keywords(full_text)
+
+            topics = find_topic_segments(transcript_data, topic_list)
+
+    return render_template("index.html", summary=summary, error=error, topics=topics)
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
